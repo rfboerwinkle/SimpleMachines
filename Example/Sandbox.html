@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple Machines: Machine</title>
+</head>
+
+<body>
+	<h3>Simple Machines: Machine</h3>
+	<h4>Sandbox</h4>
+
+	<canvas id="CenterCanvas" width="500" height="500" style="border:1px solid #000000;"></canvas>
+
+	<p><a href="./Quiz.html">Quiz</a></p>
+</body>
+
+<script>
+"use strict";
+function UpdateMachineCanvas(){
+	console.log("update machine canvas");
+	MachineContext.clearRect(0, 0, MachineCanvas.width, MachineCanvas.height);
+	MachineContext.fillStyle = "#000000";
+	MachineContext.textAlign = "center";
+	MachineContext.font = "20px Arial";
+}
+
+function UpdateForegroundCanvas(){
+	console.log("update foreground");
+	ForegroundContext.clearRect(0, 0, ForegroundCanvas.width, ForegroundCanvas.height);
+	ForegroundContext.fillStyle = "#ffffff";
+	ForegroundContext.textAlign = "center";
+	ForegroundContext.font = "30px Arial";
+	for(let i = 0; i < 4; i++){
+		ForegroundContext.drawImage(Objects[i+ObjectsView][3], 150 + (200 * i), 800 - 100, 100, 100);
+		ForegroundContext.fillText(Objects[i+ObjectsView][2], 200 + (200 * i), 825);
+		let brokenname = breaktext(Objects[i+ObjectsView][0], 13);
+		for(let linei = 0; linei < brokenname.length; linei++){
+			ForegroundContext.fillText(brokenname[linei], 200 + (200 * i), 850 + (25*linei));
+		}
+	}
+	ForegroundContext.fillStyle = "#999999";
+	ForegroundContext.fillRect(0, 0, SettingBoxX, (SettingsLength * 50));
+	ForegroundContext.fillStyle = "#000000";
+	ForegroundContext.textAlign = "left";
+	ForegroundContext.font = "30px Arial";
+	let y = 35;
+	for(let name in Settings){
+		if(Settings[name]){
+			ForegroundContext.drawImage(CheckBoxTrue, 0, y-35);
+		}else{
+			ForegroundContext.drawImage(CheckBoxFalse, 0, y-35);
+		}
+		ForegroundContext.fillText(name, 50, y);
+		y += 50;
+	}
+}
+
+function breaktext(text, linelength){//By Paul
+	let choppedtext = [];
+	let startindex = 0;
+	for(let letter = 0; letter < text.length; letter++){
+		if(text[letter] == " "){
+			choppedtext.push(text.substring(startindex, letter+1));
+			startindex = letter+1;
+		}
+	}
+	if(text.substring(startindex, text.length) != ""){
+		choppedtext.push(text.substring(startindex, text.length));
+	}
+	let index = 0;
+	let endsection = "";
+	while(true){
+		if(index+1 != choppedtext.length){
+			if(choppedtext[index].length > linelength){
+				endsection = choppedtext[index].substring(linelength);
+				choppedtext[index] = choppedtext[index].substring(0, linelength);
+				choppedtext.splice(index+1, 0, endsection);
+			}
+			if(choppedtext[index].length + choppedtext[index+1].length <= linelength){
+				choppedtext.splice(index, 2, choppedtext[index] + choppedtext[index+1]);
+			}else{
+				index++;
+			}
+		}else{
+			for(let section = 0; section<choppedtext.length; section++){
+				if(choppedtext[section][choppedtext[section].length-1] == " "){
+					choppedtext[section] = choppedtext[section].substring(0, choppedtext[section].length-1);
+				}
+			}
+			return choppedtext;
+		}
+	}
+}
+
+function MouseDown(x,y){
+	console.log("Mouse Down");
+	let relativex = x / Canvas.width;
+	let relativey = y / Canvas.height;
+	if(relativex <= SettingBoxX/1000 && relativey < SettingsLength * 0.05){
+		let settingkey = Object.keys(Settings)[Math.floor(relativey/0.05)];
+		if(Settings[settingkey]){Settings[settingkey] = false;}
+		else{Settings[settingkey] = true;}
+		if(Settings["Freeze"]){}
+		CalcForce();
+		UpdateMachineCanvas();
+		UpdateForegroundCanvas();
+	}else if(relativey >= 0.65 && relativey <= 0.95){
+		if(relativex <= 0.1 && ObjectsView > 1){ObjectsView -= 1; UpdateForegroundCanvas();}
+		else if(relativex >= 0.15 && relativex <= 0.25){PickedObject = ObjectsView;}
+		else if(relativex >= 0.35 && relativex <= 0.45){PickedObject = ObjectsView + 1;}
+		else if(relativex >= 0.55 && relativex <= 0.65){PickedObject = ObjectsView + 2;}
+		else if(relativex >= 0.75 && relativex <= 0.85){PickedObject = ObjectsView + 3;}
+		else if(relativex >= 0.9 && ObjectsView < Objects.length-4){ObjectsView += 1; UpdateForegroundCanvas();}
+	}
+}
+
+function MouseUp(x,y){
+	let relativex = x / Canvas.width;
+	let relativey = y / Canvas.height;
+	PickedObject = 0;
+}
+
+function MouseMove(x,y){
+	MouseCoords = [x,y];
+}
+
+function CalcForce(){
+	console.log("calculating force")
+}
+
+function MoveMachine(){
+	UpdateMachineCanvas();
+}
+
+function Display(){
+	Context.drawImage(Background, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(ForegroundCanvas, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(MachineCanvas, 0, 0, Canvas.width, Canvas.height);
+	if(PickedObject != 0){
+		Context.drawImage(Objects[PickedObject][3], MouseCoords[0] - Canvas.width*0.025, MouseCoords[1] - Canvas.height*0.025, Canvas.width * 0.05, Canvas.height * 0.05);
+	}
+}
+
+function MainLoop(){
+	Display();
+}
+
+var Canvas = document.getElementById("CenterCanvas");
+var Context = Canvas.getContext("2d");
+var CanvasBox = Canvas.getBoundingClientRect();
+Canvas.addEventListener("mousedown", event => {MouseDown(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mouseup", event => {MouseUp(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mousemove", event => {MouseMove(event.offsetX, event.offsetY);});
+
+var Force = 0;
+var Grounded = false;
+var MachineContents = [];
+var ArrowContents = [];//[machinecontents]
+
+var PickedObject = 0;//index in Objects
+var MouseCoords = [0,0];
+
+var MachineCanvas = document.createElement("canvas");//natural size
+MachineCanvas.width = 1000;
+MachineCanvas.height = 1000;
+var MachineContext = MachineCanvas.getContext("2d");
+
+var ForegroundCanvas = document.createElement("canvas");//natural size
+ForegroundCanvas.width = 1000;
+ForegroundCanvas.height = 1000;
+var ForegroundContext = ForegroundCanvas.getContext("2d");
+var ObjectsView = 1;//starts at 1 because 0 is empty
+
+var Settings = {"Freeze":false};
+ForegroundContext.textAlign = "left";
+ForegroundContext.font = "30px Arial";
+var SettingBoxX = 0;
+var SettingsLength = 0;
+for(let name in Settings){
+	if(ForegroundContext.measureText(name).width > SettingBoxX){SettingBoxX = ForegroundContext.measureText(name).width;}
+	SettingsLength += 1;
+}
+SettingBoxX += 75;
+SettingBoxX = Math.round(SettingBoxX);
+
+setInterval(MainLoop, 50);
+
+var Objects = [["Empty",0,""],["Pineapple",1,"1"],["Steel Toed Boots",2,"2"],["Brick",3,"3"],["Dutch Oven",5,"5"],["Dog",10,"10"],["Microwave",15,"15"],["Minifridge",20,"20"],["Fly",-1,"-1"],["Balloon",-2,"-2"],["Ghost",-3,"-3"],["Eagle",-5,"-5"],["Helicopter",-10,"-10"],["Globe",907,"?"],["Eighth Note",-51,"?"],["Potted Plant",0.5,"?"]];
+//[name,weight,displayedweight(str),picture]
+//weight of globe is based on: density of earth: 5.51g/cm^3;  width of each item: 1m(so diameter of globe is 0.68m);  end result in kg
+for(let i = 1; i < Objects.length; i++){//load pictures
+	Objects[i][3] = new Image();
+	Objects[i][3].src = "../Images/" + Objects[i][0] + ".png";
+}
+
+var CheckBoxTrue = new Image();
+CheckBoxTrue.src = "../Images/CheckBox True.png";
+var CheckBoxFalse = new Image();
+CheckBoxFalse.src = "../Images/CheckBox False.png";
+var ArrowNone = new Image();
+ArrowNone.src = "../Images/Arrow None.png";
+var ArrowDown = new Image();
+ArrowDown.src = "../Images/Arrow Down.png";
+var ArrowUp = new Image();
+ArrowUp.src = "../Images/Arrow Up.png";
+var Background = new Image();
+Background.src = "Background.png";
+//var machinepart = new Image();
+//machinepart.onload = UpdateMachineCanvas;
+//machinepart.src = "machinepart.png";
+
+CalcForce();
+</script>
+</html>

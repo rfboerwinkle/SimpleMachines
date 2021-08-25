@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple Machines: Pulley</title>
+</head>
+
+<body>
+	<h3>Simple Machines: Pulley</h3>
+	<h4>Sandbox</h4>
+
+	<canvas id="CenterCanvas" width="500" height="500" style="border:1px solid #000000;"></canvas>
+
+	<p><a href="./Quiz.html">Quiz</a></p>
+</body>
+
+<script>
+"use strict";
+function UpdateMachineCanvas(){
+	console.log("update machine canvas");
+	MachineContext.clearRect(0, 0, MachineCanvas.width, MachineCanvas.height);
+
+	MachineContext.strokeStyle = "#fdb649";
+	MachineContext.fillStyle = "#3b3b3b";
+	MachineContext.lineWidth = 5;
+	MachineContext.beginPath();
+	let loady = PulleyPosition / Advantage;
+	let position = 0;
+	if(Advantage == 1){
+		position = 1;
+		MachineContext.moveTo(125, 745 - loady);
+	}else if(Advantage % 2 == 0){
+		MachineContext.moveTo(150,125);
+		position = 0;
+	}else{
+		MachineContext.moveTo(150, 636 - loady);
+		position = 1;
+	}
+
+	let topgrooves = Math.round(Advantage / 2);
+	let bottomgrooves = Math.round((Advantage-1) / 2);
+
+	if(Settings["Expanded"]){
+		let bottomi = 0;
+		let topi = 0;
+		for(let i = 0; i < Advantage; i++){
+			if(position == 0){
+				let xoffset = -(40*bottomgrooves)+(80*bottomi)+LoadXAdjust;
+				MachineContext.drawImage(Bar, 176 + xoffset, 653 - loady);
+				MachineContext.drawImage(Groove, 160 + xoffset, 661 - loady);
+				MachineContext.lineTo(165 + xoffset, 686 - loady);
+				MachineContext.stroke();
+				MachineContext.beginPath();
+				MachineContext.moveTo(215 + xoffset, 686 - loady);
+
+				bottomi++;
+				position = 1;
+			}else{
+				let xoffset = -(40*topgrooves)+(80*topi);
+				MachineContext.drawImage(Bar, 176 + xoffset, 42);
+				MachineContext.drawImage(Groove, 160 + xoffset, 50);
+				MachineContext.lineTo(165 + xoffset, 75);
+				MachineContext.stroke();
+				MachineContext.beginPath();
+				MachineContext.moveTo(215 + xoffset, 75);
+
+				topi++;
+				position = 0;
+			}
+		}
+		MachineContext.moveTo(115+(40*topgrooves), 55);
+
+		MachineContext.fillRect(176-(40*topgrooves), 42, 28+(80*(topgrooves-1)), 6);
+		MachineContext.fillRect(176-(40*topgrooves), 101, 28+(80*(topgrooves-1)), 6);
+		if(bottomgrooves != 0){
+			MachineContext.fillRect(176-(40*bottomgrooves)+LoadXAdjust, 653 - loady, 28+(80*(bottomgrooves-1)), 6);
+			MachineContext.fillRect(176-(40*bottomgrooves)+LoadXAdjust, 712 - loady, 28+(80*(bottomgrooves-1)), 6);
+		}
+	}else{
+		MachineContext.drawImage(Bar, 141-(5*topgrooves), 42);
+		if(bottomgrooves != 0){MachineContext.drawImage(Bar, 141-(5*bottomgrooves)+LoadXAdjust, 653 - loady);}
+
+		let bottomi = 0;
+		let topi = 0;
+		for(let i = 0; i < Advantage; i++){
+			if(position == 0){
+				let xoffset = -(5*bottomgrooves)+(10*bottomi)+LoadXAdjust
+				MachineContext.drawImage(Groove, 125 + xoffset, 661 - loady);
+				MachineContext.lineTo(170 + xoffset, 686 - loady);
+				MachineContext.stroke();
+				MachineContext.beginPath();
+				MachineContext.moveTo(130 + xoffset, 686 - loady);
+
+				MachineContext.fillRect(141 + xoffset, 653 - loady, 10, 6);
+				MachineContext.fillRect(141 + xoffset, 712 - loady, 10, 6);
+
+				bottomi++;
+				position = 1;
+			}else{
+				let xoffset = -(5*topgrooves)+(10*topi)
+				MachineContext.drawImage(Groove, 125 + xoffset, 50);
+				MachineContext.lineTo(130 + xoffset, 75);
+				MachineContext.stroke();
+				MachineContext.beginPath();
+				MachineContext.moveTo(170 + xoffset, 75);
+
+				MachineContext.fillRect(141 + xoffset, 42, 10, 6);
+				MachineContext.fillRect(141 + xoffset, 101, 10, 6);
+
+				topi++;
+				position = 0;
+			}
+		}
+		MachineContext.moveTo(150+(5*topgrooves), 55);
+	}
+	MachineContext.drawImage(TopHook, 139, 14);
+	MachineContext.drawImage(BottomHook, 139, 107);
+	if(bottomgrooves != 0){
+		MachineContext.drawImage(TopHook, 139+LoadXAdjust, 625 - loady);
+		MachineContext.drawImage(BottomHook, 139+LoadXAdjust, 718 - loady);
+	}
+
+	MachineContext.lineTo(500, 55);
+	MachineContext.lineTo(500, PulleyPosition + 140);
+	MachineContext.stroke();
+	MachineContext.drawImage(Crate, 441, PulleyPosition + 129);
+	for(let i = 0; i < 4; i++){
+		if(MachineContents[1][i] != 0){
+			MachineContext.drawImage(Objects[MachineContents[1][i]][3], 441 + CrateCoords[i][0], 129 + PulleyPosition + CrateCoords[i][1]);//linked to MouseUp and MouseDown
+		}
+	}
+
+	MachineContext.drawImage(Crate, 91+LoadXAdjust, 734 - loady);
+	for(let i = 0; i < 4; i++){
+		if(MachineContents[0][i] != 0){
+			MachineContext.drawImage(Objects[MachineContents[0][i]][3], 91 + CrateCoords[i][0]+LoadXAdjust, 734 - loady + CrateCoords[i][1]);//linked to MouseUp and MouseDown
+		}
+	}
+
+	if(Settings["Expanded"]){
+		if(Advantage % 2 == 0){
+			position = 0;
+		}else{
+			position = 1;
+		}
+		let bottomi = 0;
+		let topi = 0;
+		for(let i = 0; i < Advantage; i++){
+			if(position == 0){
+				MachineContext.drawImage(Cap, 170-(40*bottomgrooves)+(80*bottomi)+LoadXAdjust, 661 - loady);
+				MachineContext.drawImage(Bar, 186-(40*bottomgrooves)+(80*bottomi)+LoadXAdjust, 653 - loady);
+				bottomi++;
+				position = 1;
+			}else{
+				MachineContext.drawImage(Cap, 170-(40*topgrooves)+(80*topi), 50);
+				MachineContext.drawImage(Bar, 186-(40*topgrooves)+(80*topi), 42);
+				topi++;
+				position = 0;
+			}
+		}
+	}else{
+		MachineContext.drawImage(Cap, 125+(5*topgrooves), 50);
+		MachineContext.drawImage(Bar, 141+(5*topgrooves), 42);
+		if(bottomgrooves != 0){
+			MachineContext.drawImage(Cap, 125+(5*bottomgrooves)+LoadXAdjust, 661 - loady);
+			MachineContext.drawImage(Bar, 141+(5*bottomgrooves)+LoadXAdjust, 653 - loady);
+		}
+	}
+
+	MachineContext.fillStyle = "#000000";
+	MachineContext.textAlign = "center";
+	MachineContext.font = "20px Arial";
+}
+
+function UpdateForegroundCanvas(){
+	console.log("update foreground");
+	ForegroundContext.clearRect(0, 0, ForegroundCanvas.width, ForegroundCanvas.height);
+
+	ForegroundContext.fillStyle = "#ffffff";
+	ForegroundContext.textAlign = "center";
+	ForegroundContext.font = "30px Arial";
+	for(let i = 0; i < 4; i++){
+		ForegroundContext.drawImage(Objects[i+ObjectsView][3], 675, 150 + (200 * i), 100, 100);
+		ForegroundContext.fillText(Objects[i+ObjectsView][2], 850, 200 + (200 * i));
+		let brokenname = breaktext(Objects[i+ObjectsView][0], 9);
+		for(let linei = 0; linei < brokenname.length; linei++){
+			ForegroundContext.fillText(brokenname[linei], 850, 240 + (200 * i) + (25*linei));
+		}
+	}
+
+	ForegroundContext.fillStyle = "#999999";
+	ForegroundContext.fillRect(0, 1000 - (SettingsLength * 50), SettingBoxX, 1000);
+	ForegroundContext.fillStyle = "#000000";
+	ForegroundContext.textAlign = "left";
+	ForegroundContext.font = "30px Arial";
+	let y = 1035 - (SettingsLength * 50);
+	for(let name in Settings){
+		if(Settings[name]){
+			ForegroundContext.drawImage(CheckBoxTrue, 0, y-35);
+		}else{
+			ForegroundContext.drawImage(CheckBoxFalse, 0, y-35);
+		}
+		ForegroundContext.fillText(name, 50, y);
+		y += 50;
+	}
+
+	ForegroundContext.fillStyle = "#000000";
+	ForegroundContext.textAlign = "center";
+	ForegroundContext.font = "30px Arial";
+	ForegroundContext.fillText(Advantage.toString(), 575, 50);
+}
+
+function breaktext(text, linelength){//By Paul
+	let choppedtext = [];
+	let startindex = 0;
+	for(let letter = 0; letter < text.length; letter++){
+		if(text[letter] == " "){
+			choppedtext.push(text.substring(startindex, letter+1));
+			startindex = letter+1;
+		}
+	}
+	if(text.substring(startindex, text.length) != ""){
+		choppedtext.push(text.substring(startindex, text.length));
+	}
+	let index = 0;
+	let endsection = "";
+	while(true){
+		if(index+1 != choppedtext.length){
+			if(choppedtext[index].length > linelength){
+				endsection = choppedtext[index].substring(linelength);
+				choppedtext[index] = choppedtext[index].substring(0, linelength);
+				choppedtext.splice(index+1, 0, endsection);
+			}
+			if(choppedtext[index].length + choppedtext[index+1].length <= linelength){
+				choppedtext.splice(index, 2, choppedtext[index] + choppedtext[index+1]);
+			}else{
+				index++;
+			}
+		}else{
+			for(let section = 0; section<choppedtext.length; section++){
+				if(choppedtext[section][choppedtext[section].length-1] == " "){
+					choppedtext[section] = choppedtext[section].substring(0, choppedtext[section].length-1);
+				}
+			}
+			return choppedtext;
+		}
+	}
+}
+
+function MouseDown(x,y){
+	console.log("Mouse Down");
+	let relativex = x / Canvas.width;
+	let relativey = y / Canvas.height;
+
+	let index = GetContentIndex(relativex, relativey);
+	if(index != false){
+		PickedObject = MachineContents[index[0]][index[1]];
+		MachineContents[index[0]][index[1]] = 0;
+		CalcForce();
+
+	}else if(relativex <= SettingBoxX * 0.001 && relativey > 1 - (SettingsLength * 0.05)){
+		let settingkey = Object.keys(Settings)[Math.floor((relativey - 1 + (SettingsLength * 0.05))/0.05)];
+		if(Settings[settingkey]){Settings[settingkey] = false;}
+		else{Settings[settingkey] = true;}
+		CalcForce();
+		UpdateMachineCanvas();
+		UpdateForegroundCanvas();
+
+	}else if(relativex >= 0.65 && relativex <= 0.95){
+		if(relativey <= 0.1 && ObjectsView > 1){ObjectsView -= 1; UpdateForegroundCanvas();}
+		else if(relativey >= 0.15 && relativey <= 0.25){PickedObject = ObjectsView;}
+		else if(relativey >= 0.35 && relativey <= 0.45){PickedObject = ObjectsView + 1;}
+		else if(relativey >= 0.55 && relativey <= 0.65){PickedObject = ObjectsView + 2;}
+		else if(relativey >= 0.75 && relativey <= 0.85){PickedObject = ObjectsView + 3;}
+		else if(relativey >= 0.9 && ObjectsView < Objects.length-4){ObjectsView += 1; UpdateForegroundCanvas();}
+
+	}else if(relativey <= 0.075 && relativex >= 0.55 && relativex <= 0.6){
+		if(relativey < 0.0375){
+			Advantage += 1;
+		}else{
+			Advantage -= 1;
+		}
+		if(Advantage < 1){
+			Advantage = 1;
+		}else if(Advantage > 6){
+			Advantage = 6;
+		}
+		if(Advantage == 1){LoadXAdjust = -25;}
+		else{LoadXAdjust = 0;}
+		PulleyPosition = 0;
+		CalcForce();
+		UpdateForegroundCanvas();
+	}
+}
+
+function MouseUp(x,y){
+	console.log("Mouse Up");
+	let relativex = x / Canvas.width;
+	let relativey = y / Canvas.height;
+	if(PickedObject != 0){
+		let index = GetContentIndex(relativex, relativey);
+		if(index != false){
+			MachineContents[index[0]][index[1]] = PickedObject;
+			CalcForce();
+		}
+		PickedObject = 0;
+	}
+}
+
+function MouseMove(x,y){
+	MouseCoords = [x,y];
+}
+
+function GetContentIndex(relativex, relativey){
+	console.log("getting context index");
+	let relativeloady = (PulleyPosition/Advantage) / 1000;
+	let xdiff = relativex - (0.15 + (LoadXAdjust/1000));
+	let ydiff = relativey - (0.841 - relativeloady);//linked to UpdateMachineCanvas and MouseDown
+	if(Math.abs(xdiff) <= 0.053 && Math.abs(ydiff) <= 0.053){
+		if(ydiff < 0){
+			if(xdiff < 0){return [0,0];}
+			else{return [0,1];}
+		}else{
+			if(xdiff < 0){return [0,2];}
+			else{return [0,3];}
+		}
+	}
+	let relativepulleyposition = PulleyPosition / 1000;
+	xdiff = relativex - 0.5;
+	ydiff = relativey - (0.236 + relativepulleyposition);//linked to UpdateMachineCanvas and MouseDown
+	if(Math.abs(xdiff) <= 0.053 && Math.abs(ydiff) <= 0.053){
+		if(ydiff < 0){
+			if(xdiff < 0){return [1,0];}
+			else{return [1,1];}
+		}else{
+			if(xdiff < 0){return [1,2];}
+			else{return [1,3];}
+		}
+	}
+	return false;
+}
+
+function CalcForce(){
+	console.log("calculating force")
+	let loadtotal = 0;
+	let forcetotal = 0;
+	for(let i = 0; i < 4; i++){
+		loadtotal += Objects[MachineContents[0][i]][1];
+	}
+	for(let i = 0; i < 4; i++){
+		forcetotal += Objects[MachineContents[1][i]][1];
+	}
+	Force = (forcetotal * Advantage) - loadtotal;
+	MoveMachine();
+}
+
+function MoveMachine(){
+	console.log("moving machine");
+	Grounded = false;
+	if(Settings["Freeze"]){
+		Grounded = true;
+		UpdateMachineCanvas();
+		return;
+	}
+	if(Force < 0){
+		if(Grounded == false){
+			PulleyPosition += Force * 0.5;
+		}
+		if(PulleyPosition <= 0){
+			PulleyPosition = 0;
+			Grounded = true;
+		}
+	}else if(Force > 0){
+		if(Grounded == false){
+			PulleyPosition += Force * 0.5;
+		}
+		if(PulleyPosition >= 605){
+			PulleyPosition = 605;
+			Grounded = true;
+		}
+	}else{
+		Grounded = true;
+	}
+	UpdateMachineCanvas();
+}
+
+function Display(){
+	Context.drawImage(Background, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(ForegroundCanvas, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(MachineCanvas, 0, 0, Canvas.width, Canvas.height);
+	if(PickedObject != 0){
+		Context.drawImage(Objects[PickedObject][3], MouseCoords[0] - Canvas.width*0.025, MouseCoords[1] - Canvas.height*0.025, Canvas.width * 0.05, Canvas.height * 0.05);
+	}
+}
+
+function MainLoop(){
+	if(Grounded == false){MoveMachine();}
+	Display();
+}
+
+var Canvas = document.getElementById("CenterCanvas");
+var Context = Canvas.getContext("2d");
+var CanvasBox = Canvas.getBoundingClientRect();
+Canvas.addEventListener("mousedown", event => {MouseDown(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mouseup", event => {MouseUp(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mousemove", event => {MouseMove(event.offsetX, event.offsetY);});
+
+var Advantage = 1;
+var LoadXAdjust = -25;
+var PulleyPosition = 0;
+var Force = 0;//positive means load goes up
+var Grounded = false;
+var MachineContents = [[2,0,0,0],[1,0,0,0]];//[load crate, force crate]
+const CrateCoords = [[6,54],[62,54],[6,110],[62,110]];
+//crate indexes:
+//01
+//23
+var ArrowContents = [];//[machinecontents]
+
+var PickedObject = 0;//index in Objects
+var MouseCoords = [0,0];
+
+var MachineCanvas = document.createElement("canvas");//natural size
+MachineCanvas.width = 1000;
+MachineCanvas.height = 1000;
+var MachineContext = MachineCanvas.getContext("2d");
+
+var ForegroundCanvas = document.createElement("canvas");//natural size
+ForegroundCanvas.width = 1000;
+ForegroundCanvas.height = 1000;
+var ForegroundContext = ForegroundCanvas.getContext("2d");
+
+var Settings = {"Expanded":false, "Freeze":false};
+ForegroundContext.textAlign = "left";
+ForegroundContext.font = "30px Arial";
+var SettingBoxX = 0;
+var SettingsLength = 0;
+for(let name in Settings){
+	if(ForegroundContext.measureText(name).width > SettingBoxX){SettingBoxX = ForegroundContext.measureText(name).width;}
+	SettingsLength += 1;
+}
+SettingBoxX += 75;
+SettingBoxX = Math.round(SettingBoxX);
+
+setInterval(MainLoop, 50);
+
+var ObjectsView = 1;//starts at 1 because 0 is empty
+var Objects = [["Empty",0,""],["Pineapple",1,"1"],["Steel Toed Boots",2,"2"],["Brick",3,"3"],["Dutch Oven",5,"5"],["Dog",10,"10"],["Microwave",15,"15"],["Minifridge",20,"20"],["Globe",907,"?"],["Eighth Note",51,"?"],["Potted Plant",0.5,"?"]];
+//[name,weight,displayedweight(str),picture]
+//weight of globe is based on: density of earth: 5.51g/cm^3;  width of each item: 1m(so diameter of globe is 0.68m);  end result in kg
+for(let i = 1; i < Objects.length; i++){//load pictures
+	Objects[i][3] = new Image();
+	Objects[i][3].src = "../Images/" + Objects[i][0] + ".png";
+}
+
+var CheckBoxTrue = new Image();
+CheckBoxTrue.src = "../Images/CheckBox True.png";
+var CheckBoxFalse = new Image();
+CheckBoxFalse.src = "../Images/CheckBox False.png";
+CheckBoxFalse.onload = UpdateForegroundCanvas;
+/*
+var ArrowNone = new Image();
+ArrowNone.src = "../Images/Arrow None.png";
+var ArrowDown = new Image();
+ArrowDown.src = "../Images/Arrow Down.png";
+var ArrowUp = new Image();
+ArrowUp.src = "../Images/Arrow Up.png";
+*/
+var Background = new Image();
+Background.src = "Background.png";
+var Bar = new Image();
+Bar.src = "Bar.png";
+var Cap = new Image();
+Cap.src = "Cap.png";
+var BottomHook = new Image();
+BottomHook.src = "BottomHook.png";
+var TopHook = new Image();
+TopHook.src = "TopHook.png";
+var Crate = new Image();
+Crate.src = "Crate.png";
+var Groove = new Image();
+Groove.onload = UpdateMachineCanvas;
+Groove.src = "Groove.png";
+//var machinepart = new Image();
+//machinepart.onload = UpdateMachineCanvas;
+//machinepart.src = "machinepart.png";
+</script>
+</html>

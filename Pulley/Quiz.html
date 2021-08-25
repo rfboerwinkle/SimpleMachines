@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple Machines: Pulley</title>
+</head>
+
+<body>
+	<h3>Simple Machines: Pulley</h3>
+	<h4>Quiz</h4>
+
+	<canvas id="CenterCanvas" width="500" height="500" style="border:1px solid #000000;"></canvas>
+	<div>
+		<input style="display:none;" type="number" id="NumberInput">
+		<button onclick="Submit()" id="SubmitButton">Submit</button>
+	</div>
+</body>
+
+<script>
+"use strict";
+//if refreshing increases memory usage, try this:
+//window.addEventListener('unload', function(){
+//	document.documentElement.innerHTML = '';
+//});
+function UpdateMachineCanvas(){
+	console.log("UpdateMachineCanvas");
+	MachineContext.clearRect(0, 0, MachineCanvas.width, MachineCanvas.height);
+
+	MachineContext.strokeStyle = "#fdb649";
+	MachineContext.fillStyle = "#3b3b3b";
+	MachineContext.lineWidth = 5;
+	MachineContext.beginPath();
+	let loady = PulleyPosition / Advantage;
+	let position = 0;
+	if(Advantage == 1){
+		position = 1;
+		MachineContext.moveTo(125, 745 - loady);
+	}else if(Advantage % 2 == 0){
+		MachineContext.moveTo(150,125);
+		position = 0;
+	}else{
+		MachineContext.moveTo(150, 636 - loady);
+		position = 1;
+	}
+
+	let topgrooves = Math.round(Advantage / 2);
+	let bottomgrooves = Math.round((Advantage-1) / 2);
+
+
+	MachineContext.drawImage(Bar, 141-(5*topgrooves), 42);
+	if(bottomgrooves != 0){MachineContext.drawImage(Bar, 141-(5*bottomgrooves), 653 - loady);}
+
+	//ropes and cross bars
+	let bottomi = 0;
+	let topi = 0;
+	for(let i = 0; i < Advantage; i++){
+		if(position == 0){
+			let xoffset = -(5*bottomgrooves)+(10*bottomi)
+			MachineContext.drawImage(Groove, 125 + xoffset, 661 - loady);
+			MachineContext.lineTo(170 + xoffset, 686 - loady);
+			MachineContext.stroke();
+			MachineContext.beginPath();
+			MachineContext.moveTo(130 + xoffset, 686 - loady);
+
+			MachineContext.fillRect(141 + xoffset, 653 - loady, 10, 6);
+			MachineContext.fillRect(141 + xoffset, 712 - loady, 10, 6);
+
+			bottomi++;
+			position = 1;
+		}else{
+			let xoffset = -(5*topgrooves)+(10*topi)
+			MachineContext.drawImage(Groove, 125 + xoffset, 50);
+			MachineContext.lineTo(130 + xoffset, 75);
+			MachineContext.stroke();
+			MachineContext.beginPath();
+			MachineContext.moveTo(170 + xoffset, 75);
+
+			MachineContext.fillRect(141 + xoffset, 42, 10, 6);
+			MachineContext.fillRect(141 + xoffset, 101, 10, 6);
+
+			topi++;
+			position = 0;
+		}
+	}
+	MachineContext.moveTo(150+(5*topgrooves), 55);
+
+	//hooks
+	MachineContext.drawImage(TopHook, 139, 14);
+	MachineContext.drawImage(BottomHook, 139, 107);
+	if(bottomgrooves != 0){
+		MachineContext.drawImage(TopHook, 139, 625 - loady);
+		MachineContext.drawImage(BottomHook, 139, 718 - loady);
+	}
+
+	//force crate and rope
+	MachineContext.lineTo(500, 55);
+	MachineContext.lineTo(500, PulleyPosition + 140);
+	MachineContext.stroke();
+	MachineContext.drawImage(Crate, 441, PulleyPosition + 129);
+	for(let i = 0; i < 4; i++){
+		if(MachineContents[1][i] != 0){
+			MachineContext.drawImage(Objects[MachineContents[1][i]][3], 441 + CrateCoords[i][0], 129 + PulleyPosition + CrateCoords[i][1]);//linked to MouseUp and MouseDown
+		}
+	}
+
+	//load crate
+	MachineContext.drawImage(Crate, 91+PlumbLoadXAdjust, 734 - loady);
+	for(let i = 0; i < 4; i++){
+		if(MachineContents[0][i] != 0){
+			MachineContext.drawImage(Objects[MachineContents[0][i]][3], 91 + CrateCoords[i][0]+PlumbLoadXAdjust, 734 - loady + CrateCoords[i][1]);//linked to MouseUp and MouseDown
+		}
+	}
+
+	//block caps
+	MachineContext.drawImage(Cap, 125+(5*topgrooves), 50);
+	MachineContext.drawImage(Bar, 141+(5*topgrooves), 42);
+	if(bottomgrooves != 0){
+		MachineContext.drawImage(Cap, 125+(5*bottomgrooves), 661 - loady);
+		MachineContext.drawImage(Bar, 141+(5*bottomgrooves), 653 - loady);
+	}
+
+	UpdateCanvas();
+}
+
+function UpdateForegroundCanvas(){
+	console.log("UpdateForeground");
+	ForegroundContext.clearRect(0, 0, ForegroundCanvas.width, ForegroundCanvas.height);
+
+	ForegroundContext.fillStyle = "#ffffff";
+	ForegroundContext.textAlign = "center";
+	ForegroundContext.font = "30px Arial";
+	for(let i = 0; i < 4 && i+ObjectsView < Objects.length; i++){
+		ForegroundContext.drawImage(Objects[i+ObjectsView][3], 675, 150 + (200 * i), 100, 100);
+		ForegroundContext.fillText(Objects[i+ObjectsView][2], 850, 200 + (200 * i));
+		let brokenname = BreakText(Objects[i+ObjectsView][0], 175, ForegroundContext);
+		for(let linei = 0; linei < brokenname.length; linei++){
+			ForegroundContext.fillText(brokenname[linei], 850, 240 + (200 * i) + (25*linei));
+		}
+	}
+
+	ForegroundContext.fillStyle = "#000000";
+	ForegroundContext.textAlign = "center";
+	ForegroundContext.font = "30px Arial";
+	ForegroundContext.fillText(Advantage.toString(), 575, 50);
+
+	ForegroundContext.textAlign = "center";
+	ForegroundContext.font = "40px Arial";
+	let text = BreakText(CurrentQuestion["text"], 600, ForegroundContext);
+	for(let i = 0; i < text.length; i++){
+		ForegroundContext.fillText(text[i], 300, 940+(i*50));
+	}
+
+	if(PickedObject != 0){
+		ForegroundContext.drawImage(Objects[PickedObject][3], MouseCoords[0]*1000 - 25, MouseCoords[1]*1000 - 25);
+	}
+
+	UpdateCanvas();
+}
+
+function UpdateOverlay(){
+	console.log("UpdateOverlay")
+	OverlayContext.clearRect(0, 0, 1000, 1000);
+	OverlayContext.drawImage(AnswerScreen, 0, 0)
+	OverlayContext.fillStyle = "#000000";
+	OverlayContext.textAlign = "center";
+	OverlayContext.font = "90px Arial";
+	OverlayContext.fillText("Next", 500, 880);
+	OverlayContext.fillText(Score[0].toString() + "/" + Score[1].toString(), 500, 350);
+	if(State == "correct"){
+		OverlayContext.fillText("Correct!", 500, 250);
+	}else if(State == "incorrect"){
+		OverlayContext.fillText("Incorrect", 500, 250);
+		if(CurrentQuestion["answer type"] == "number"){OverlayContext.fillText(CurrentQuestion["answer"], 500, 450);}
+	}
+
+	UpdateCanvas();
+}
+
+function BreakText(text, linelength, context){
+	let choppedtext = text.split(" ");
+	let endlist = [[]];
+	let length = 0;
+	let wordlength = 0;
+	let spacelength = context.measureText(" ").width;
+	for(let i = 0; i < choppedtext.length; i++){
+		wordlength = context.measureText(choppedtext[i]).width;
+		if(length + wordlength >= linelength && length != 0){
+			endlist.push([]);
+			length = 0;
+		}
+		endlist[endlist.length-1].push(choppedtext[i]);
+		length = length + wordlength + spacelength;
+	}
+	for(let i = 0; i < endlist.length; i++){
+		for(let n = 1; n < endlist[i].length; n++){
+			endlist[i][0] = endlist[i][0].concat(" ");
+			endlist[i][0] = endlist[i][0].concat(endlist[i][n]);
+		}
+		endlist[i] = endlist[i][0];
+	}
+	return endlist
+}
+
+function MouseDown(x,y){
+	console.log("MouseDown");
+	let relativex = x / Canvas.width;
+	let relativey = y / Canvas.height;
+	if(State == "correct" || State == "incorrect"){
+		if(relativex <= 0.625 && relativex >= 0.375 && relativey <= 0.9 && relativey >= 0.8){
+			NewQuestion();
+		}
+	}else if(State == "question"){
+		let index = GetContentIndex(relativex, relativey);
+		if(index != false){
+			PickedObject = MachineContents[index[0]][index[1]];
+			MachineContents[index[0]][index[1]] = 0;
+			UpdateForce();
+			UpdateForegroundCanvas();
+
+		}else if(relativex >= 0.65 && relativex <= 0.95){
+			if(relativey <= 0.1){if(ObjectsView > 1){ObjectsView -= 1;}}
+			else if(relativey <= 0.3){PickedObject = ObjectsView;}
+			else if(relativey <= 0.5){PickedObject = ObjectsView + 1;}
+			else if(relativey <= 0.7){PickedObject = ObjectsView + 2;}
+			else if(relativey <= 0.9){PickedObject = ObjectsView + 3;}
+			else{if((ObjectsView < Objects.length-4)){ObjectsView += 1;}}
+			UpdateForegroundCanvas();
+
+		}else if(relativey <= 0.075 && relativex >= 0.55 && relativex <= 0.6){
+			if(relativey < 0.0375){
+				Advantage += 1;
+			}else{
+				Advantage -= 1;
+			}
+			if(Advantage < 1){
+				Advantage = 1;
+			}else if(Advantage > 6){//linked to NewQuestion
+				Advantage = 6;
+			}
+			if(Advantage == 1){PlumbLoadXAdjust = -25;}//linked to NewQuestion and default
+			else{PlumbLoadXAdjust = 0;}
+			PulleyPosition = 0;
+			UpdateForce();
+			UpdateForegroundCanvas();
+		}
+	}
+}
+
+function MouseUp(x,y){
+	console.log("MouseUp");
+	if(PickedObject != 0){
+		let relativex = x / Canvas.width;
+		let relativey = y / Canvas.height;
+		let index = GetContentIndex(relativex, relativey);
+		if(index != false){
+			MachineContents[index[0]][index[1]] = PickedObject;
+			UpdateForce();
+		}
+		PickedObject = 0;
+		UpdateForegroundCanvas();
+	}
+}
+
+function MouseMove(x,y){
+	MouseCoords = [x/Canvas.width,y/Canvas.height];
+	if(PickedObject != 0){UpdateForegroundCanvas();}
+}
+
+function GetContentIndex(relativex, relativey){
+	let relativeloady = (PulleyPosition/Advantage) / 1000;
+	let xdiff = relativex - (0.15 + (PlumbLoadXAdjust/1000));
+	let ydiff = relativey - (0.841 - relativeloady);//linked to UpdateMachineCanvas and MouseDown
+	if(Math.abs(xdiff) <= 0.053 && Math.abs(ydiff) <= 0.053){
+		if(ydiff < 0){
+			if(xdiff < 0){return [0,0];}
+			else{return [0,1];}
+		}else{
+			if(xdiff < 0){return [0,2];}
+			else{return [0,3];}
+		}
+	}
+	let relativepulleyposition = PulleyPosition / 1000;
+	xdiff = relativex - 0.5;
+	ydiff = relativey - (0.236 + relativepulleyposition);//linked to UpdateMachineCanvas and MouseDown
+	if(Math.abs(xdiff) <= 0.053 && Math.abs(ydiff) <= 0.053){
+		if(ydiff < 0){
+			if(xdiff < 0){return [1,0];}
+			else{return [1,1];}
+		}else{
+			if(xdiff < 0){return [1,2];}
+			else{return [1,3];}
+		}
+	}
+	return false;
+}
+
+function UpdateForce(continueupdate = true){
+	console.log("UpdateForce");
+	let loadtotal = 0;
+	let forcetotal = 0;
+	for(let i = 0; i < 4; i++){
+		loadtotal += Objects[MachineContents[0][i]][1];
+	}
+	for(let i = 0; i < 4; i++){
+		forcetotal += Objects[MachineContents[1][i]][1];
+	}
+	Force = (forcetotal * Advantage) - loadtotal;
+	if(continueupdate){UpdateMachine();}
+}
+
+function UpdateMachine(){
+	console.log("UpdateMachine");
+	Grounded = false;
+	if(Force < 0){
+		if(Grounded == false){
+			PulleyPosition += Force * 0.5;
+		}
+		if(PulleyPosition <= 0){
+			PulleyPosition = 0;
+			Grounded = true;
+		}
+	}else if(Force > 0){
+		if(Grounded == false){
+			PulleyPosition += Force * 0.5;
+		}
+		if(PulleyPosition >= 605){
+			PulleyPosition = 605;
+			Grounded = true;
+		}
+	}else{
+		Grounded = true;
+	}
+	UpdateMachineCanvas();
+}
+
+function RandomInteger(low, high) {
+		return Math.floor(Math.random() * (high - low + 1) ) + low;
+}
+
+function NewQuestion(){
+	let savior = false;//false: haven't found one, 0: already exists
+	while(savior == false){
+		console.log("NewQuestion");
+		CurrentQuestion = {"answer":0, "text":"What is the weight of the ", "objects":[["Empty",0,""]]};
+		//There is only one answer type, and the advantage is free to mess with in it.
+
+		let objectbank = ["Brick","Dog","Dutch Oven","Globe","Microwave","Minifridge","Mysterious Box","Pineapple","Potted Plant","Steel Toed Boots"];
+		let weightbank = [];
+		for(let i = 1; i <= 15; i++){weightbank.push(i);}
+
+		//mystery object
+		CurrentQuestion["objects"].push([RandomInteger(0,objectbank.length-1), RandomInteger(1,15), "?"]);
+		let i = CurrentQuestion["objects"][1][0];
+		CurrentQuestion["objects"][1][0] = objectbank[i];
+		CurrentQuestion["text"] = CurrentQuestion["text"].concat(objectbank[i]);
+		CurrentQuestion["text"] = CurrentQuestion["text"].concat("?");
+		objectbank.splice(i,1);
+		CurrentQuestion["answer"] = CurrentQuestion["objects"][1][1];
+
+		//secondary objects
+		for(let n = RandomInteger(-2,0); n <= 0; n++){
+			let i = CurrentQuestion["objects"].length;
+			CurrentQuestion["objects"].push([RandomInteger(0,i-1), RandomInteger(0,weightbank.length-1)]);
+			let banki = CurrentQuestion["objects"][i][0];
+			CurrentQuestion["objects"][i][0] = objectbank[banki];
+			objectbank.splice(banki,1);
+			banki = CurrentQuestion["objects"][i][1];
+			CurrentQuestion["objects"][i][1] = weightbank[banki];
+			weightbank.splice(banki,1);
+			CurrentQuestion["objects"][i][2] = CurrentQuestion["objects"][i][1].toString();
+		}
+
+		//place objects
+		MachineContents = [[0,0,0,0],[0,0,0,0]];
+		for(let i = CurrentQuestion["objects"].length-1; i > 0; i--){
+			let amount = (i == 1)? 1 : RandomInteger(0,2);
+			for(let n = 0; n < amount; n++){MachineContents[RandomInteger(0,1)][RandomInteger(0,3)] = i;}
+		}
+		if(MachineContents[0].includes(0) == false){MachineContents[0][0] = 0;}
+		if(MachineContents[1].includes(0) == false){MachineContents[1][0] = 0;}
+
+		//determine saving object
+		Objects = CurrentQuestion["objects"];
+		let semifinalists = [];
+		for(let i = 1; i <= 6; i++){//linked to MouseDown
+			Advantage = i;
+			UpdateForce(false);
+			if(Force == 0){
+				savior = 0;
+				break;
+			}
+			if(Force > 0 && Force <= 15){
+				semifinalists.push(Force);
+			}
+			let forceoption = Force / i * -1;
+			if(forceoption > 0 && forceoption <= 15){
+				semifinalists.push(forceoption);
+			}
+		}
+
+		for(let i = 0; i < semifinalists.length; i++){
+			for(let objectsi = 0; objectsi < Objects.length; objectsi++){
+				if(Objects[objectsi][1] == semifinalists[i]){
+					savior = 0;
+					break;
+				}
+			}
+		}
+
+		if(savior == false){
+			if(semifinalists.length > 0){savior = semifinalists[RandomInteger(0,semifinalists.length-1)];}
+		}
+	}
+
+	//TODO add in the savior
+
+	//interpret
+	//MachineContents = [[0,0,0,0],[0,0,0,0]];
+	Advantage = 1;
+	PlumbLoadXAdjust = -25;//linked to MouseDown and default
+	PulleyPosition = 0;
+	Objects = CurrentQuestion["objects"];
+	for(let i = 0; i < Objects.length; i++){
+		Objects[i][3] = MasterObjects[Objects[i][0]];
+	}
+	State = "question";
+	NumberInput.style.display = "";
+	SubmitButton.style.display = "";
+
+	UpdateForce();
+	UpdateForegroundCanvas();
+}
+
+function Submit(){
+	if(State == "question"){
+		Score[1]++;
+		if(NumberInput.value == CurrentQuestion["answer"]){
+			State = "correct";
+			Score[0]++;
+		}else{
+			State = "incorrect";
+		}
+		NumberInput.style.display = "none"
+		SubmitButton.style.display = "none"
+		UpdateOverlay();
+	}
+}
+
+function UpdateCanvas(){
+	Context.drawImage(Background, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(MachineCanvas, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(ForegroundCanvas, 0, 0, Canvas.width, Canvas.height);
+	if(State == "correct" || State == "incorrect"){
+		Context.drawImage(OverlayCanvas, 0, 0, Canvas.width, Canvas.height);
+	}
+}
+
+function MainLoop(){
+	if(Grounded == false){UpdateMachine();}
+}
+
+var Canvas = document.getElementById("CenterCanvas");
+var Context = Canvas.getContext("2d");
+var CanvasBox = Canvas.getBoundingClientRect();
+Canvas.addEventListener("mousedown", event => {MouseDown(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mouseup", event => {MouseUp(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mousemove", event => {MouseMove(event.offsetX, event.offsetY);});
+
+var Advantage = 1;
+var PlumbLoadXAdjust = -25;//linked to NewQuestion and MouseDown
+var PulleyPosition = 0;
+var Force = 0;//positive means load goes up
+var Grounded = false;
+var MachineContents = [[0,0,0,0],[0,0,0,0]];//[load crate(port), force crate(starboard)]
+const CrateCoords = [[6,54],[62,54],[6,110],[62,110]];
+//crate indexes:
+//01
+//23
+
+var PickedObject = 0;//index in Objects
+var MouseCoords = [0,0];
+
+var MachineCanvas = document.createElement("canvas");//natural size
+MachineCanvas.width = 1000;
+MachineCanvas.height = 1000;
+var MachineContext = MachineCanvas.getContext("2d");
+
+var ForegroundCanvas = document.createElement("canvas");//natural size
+ForegroundCanvas.width = 1000;
+ForegroundCanvas.height = 1000;
+var ForegroundContext = ForegroundCanvas.getContext("2d");
+
+var OverlayCanvas = document.createElement("canvas");//natural size
+OverlayCanvas.width = 1000;
+OverlayCanvas.height = 1000;
+var OverlayContext = OverlayCanvas.getContext("2d");
+
+var ObjectsView = 1;//starts at 1 because 0 is empty
+var State = "question"
+var Score = [0,0]
+var CurrentQuestion = {};
+ForegroundContext.textAlign = "left";
+ForegroundContext.font = "30px Arial";
+
+var Objects = [["Empty",0,""]];
+//[name,weight,displayedweight(str),picture]
+
+var AnswerScreen = new Image();
+AnswerScreen.src = "../Images/Answer Screen.png";
+var Lock = new Image();
+Lock.onload = UpdateForegroundCanvas;
+Lock.src = "../Images/Lock.png";
+var Background = new Image();
+Background.src = "Background.png";
+var Bar = new Image();
+Bar.src = "Bar.png";
+var Cap = new Image();
+Cap.src = "Cap.png";
+var BottomHook = new Image();
+BottomHook.src = "BottomHook.png";
+var TopHook = new Image();
+TopHook.src = "TopHook.png";
+var Crate = new Image();
+Crate.src = "Crate.png";
+var Groove = new Image();
+Groove.onload = UpdateMachineCanvas;
+Groove.src = "Groove.png";
+
+let image = "";
+var MasterObjects = {"Brick":"","Dog":"","Dutch Oven":"","Globe":"","Microwave":"","Minifridge":"","Mysterious Box":"","Pineapple":"","Potted Plant":"","Steel Toed Boots":"","Balloon":"","Eagle":"","Eighth Note":"","Fly":"","Ghost":"","Helicopter":""}
+let keys = Object.keys(MasterObjects);
+for(let i = 0; i < keys.length; i++){
+	MasterObjects[keys[i]] = new Image();
+	if(i == keys.length - 1){
+		MasterObjects[keys[i]].onload = function(){//This has to be at the end, or it won't be able to find the canvas & context & stuff
+			UpdateForegroundCanvas();
+			UpdateMachineCanvas();
+		}
+	}
+	MasterObjects[keys[i]].src = "../Images/" + keys[i] + ".png";
+}
+
+NewQuestion();
+
+setInterval(MainLoop, 50);
+</script>
+</html>

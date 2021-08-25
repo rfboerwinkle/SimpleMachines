@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple Machines: Lever</title>
+</head>
+
+<body>
+	<h3>Simple Machines: Lever</h3>
+	<h4>Sandbox</h4>
+
+	<canvas id="CenterCanvas" width="500" height="500" style="border:1px solid #000000;"></canvas>
+
+	<p><a href="./Quiz.html">Quiz</a></p>
+</body>
+
+<script>
+//TODO remove arm weight
+"use strict";
+function UpdateMachineCanvas(){
+	console.log("update machine canvas");
+	MachineContext.setTransform(1, 0, 0, 1, 0, 0);
+	MachineContext.clearRect(0, 0, MachineCanvas.width, MachineCanvas.height);
+	MachineContext.translate(100 + (FulcrumPosition * 50), 500);
+	MachineContext.rotate(-1 * LeverAngle);
+	MachineContext.translate(-1 * (100 + (FulcrumPosition * 50)), -500);
+	MachineContext.drawImage(Arm, 100, 475);
+	MachineContext.fillStyle = "#000000";
+	MachineContext.textAlign = "center";
+	MachineContext.font = "20px Arial";
+	if(Settings["Torque Arrows"] && Settings["Arm Weight"]){
+		MachineContext.drawImage(ArrowDown, 50, 475);
+		MachineContext.fillText(ArrowContents[15], 75, 508);
+		MachineContext.drawImage(ArrowDown, 900, 475);
+		MachineContext.fillText(ArrowContents[16], 925, 508);
+	}
+	for(let i = 0; i < LeverContents.length; i++){
+		if(LeverContents[i] != 0){
+			MachineContext.drawImage(Objects[LeverContents[i]][3], 125+(50*i), 425);//make y based on height of image
+		}
+		if(Settings["Torque Arrows"]){
+			if(Objects[LeverContents[i]][2] == "?"){
+				MachineContext.drawImage(ArrowNone, 125+(50*i), 500);
+				MachineContext.fillText("?", 150+(50*i), 533);
+			}else if(ArrowContents[i] < 0){
+					MachineContext.drawImage(ArrowUp, 125+(50*i), 500);
+					MachineContext.fillText(ArrowContents[i], 150+(50*i), 533);
+			}else if(ArrowContents[i] > 0){
+					MachineContext.drawImage(ArrowDown, 125+(50*i), 500);
+					MachineContext.fillText(ArrowContents[i], 150+(50*i), 533);
+			}
+		}
+	}
+}
+
+function UpdateForegroundCanvas(){
+	console.log("update foreground");
+	ForegroundContext.clearRect(0, 0, ForegroundCanvas.width, ForegroundCanvas.height);
+	if(PickedObject != "F"){ForegroundContext.drawImage(Fulcrum, 50 + (FulcrumPosition * 50), 500);}
+	ForegroundContext.fillStyle = "#ffffff";
+	ForegroundContext.textAlign = "center";
+	ForegroundContext.font = "30px Arial";
+	for(let i = 0; i < 4; i++){
+		ForegroundContext.drawImage(Objects[i+ObjectsView][3], 150 + (200 * i), 800 - 100, 100, 100);//make offset based on size
+		ForegroundContext.fillText(Objects[i+ObjectsView][2], 200 + (200 * i), 825);
+		let brokenname = BreakText(Objects[i+ObjectsView][0], 200, ForegroundContext);
+		for(let linei = 0; linei < brokenname.length; linei++){
+			ForegroundContext.fillText(brokenname[linei], 200 + (200 * i), 850 + (25*linei));
+		}
+	}
+	ForegroundContext.fillStyle = "#999999";
+	ForegroundContext.fillRect(0, 0, SettingBoxX, (SettingsLength * 50));
+	ForegroundContext.fillStyle = "#000000";
+	ForegroundContext.textAlign = "left";
+	ForegroundContext.font = "30px Arial";
+	let y = 35;
+	for(let name in Settings){
+		if(Settings[name]){
+			ForegroundContext.drawImage(CheckBoxTrue, 0, y-35);
+		}else{
+			ForegroundContext.drawImage(CheckBoxFalse, 0, y-35);
+		}
+		ForegroundContext.fillText(name, 50, y);
+		y += 50;
+	}
+}
+
+function BreakText(text, linelength, context){
+	let choppedtext = text.split(" ");
+	let endlist = [[]];
+	let length = 0;
+	let wordlength = 0;
+	let spacelength = context.measureText(" ").width;
+	for(let i = 0; i < choppedtext.length; i++){
+		wordlength = context.measureText(choppedtext[i]).width;
+		if(length + wordlength >= linelength && length != 0){
+			endlist.push([]);
+			length = 0;
+		}
+		endlist[endlist.length-1].push(choppedtext[i]);
+		length = length + wordlength + spacelength;
+	}
+	for(let i = 0; i < endlist.length; i++){
+		for(let n = 1; n < endlist[i].length; n++){
+			endlist[i][0] = endlist[i][0].concat(" ");
+			endlist[i][0] = endlist[i][0].concat(endlist[i][n]);
+		}
+		endlist[i] = endlist[i][0];
+	}
+	return endlist
+}
+
+function FindLeverIndex(relativex, relativey){
+	let objectindex = null;
+	let invertedy = relativey * -1;
+	let invertedx = relativex;
+	let mouseb = 0;
+	if(invertedy <= M*invertedx+B2 && invertedy >= M*invertedx+B1){
+		mouseb = (-1 * NormalM * invertedx) + invertedy;
+		if(NormalM < 0){
+			for(let i = 0; i < 16; i++){
+				if(mouseb <= NormalBList[i]){
+					objectindex = i;
+					i = 16;
+				}
+			}
+		}
+		else{
+			for(let i = 0; i < 16; i++){
+				if(mouseb >= NormalBList[i]){
+					objectindex = i;
+					i = 16;
+				}
+			}
+		}
+		objectindex -= 1;
+		if(objectindex < 0 || objectindex > 14){
+			objectindex = null;
+		}
+	}
+	return objectindex;
+}
+
+function MouseDown(x,y){
+	console.log("Mouse Down");
+	let relativex = x / Canvas.width;
+	let relativey = y / Canvas.height;
+	if(relativex <= SettingBoxX/1000 && relativey < SettingsLength * 0.05){
+		let settingkey = Object.keys(Settings)[Math.floor(relativey/0.05)];
+		if(Settings[settingkey]){Settings[settingkey] = false;}
+		else{Settings[settingkey] = true;}
+		if(Settings["Freeze Lever"]){LeverAngle = 0;}
+		CalcForce();//in the case of arm weight
+		UpdateMachineCanvas();//in the case of Torque Arrows
+		UpdateForegroundCanvas();//for the checkmarks
+		UpdateHitboxes();
+	}else if(relativey >= 0.65 && relativey <= 0.95){
+		if(relativex <= 0.1 && ObjectsView > 1){ObjectsView -= 1; UpdateForegroundCanvas();}
+		else if(relativex >= 0.15 && relativex <= 0.25){PickedObject = ObjectsView;}
+		else if(relativex >= 0.35 && relativex <= 0.45){PickedObject = ObjectsView + 1;}
+		else if(relativex >= 0.55 && relativex <= 0.65){PickedObject = ObjectsView + 2;}
+		else if(relativex >= 0.75 && relativex <= 0.85){PickedObject = ObjectsView + 3;}
+		else if(relativex >= 0.9 && ObjectsView < Objects.length-4){ObjectsView += 1; UpdateForegroundCanvas();}
+	}else{
+		if(relativey >= 0.5 && relativey <= 0.6 && relativex >= 0.05 + (0.05 * FulcrumPosition) && relativex <= 0.15 + (0.05 * FulcrumPosition)){
+			PickedObject = "F";
+		}
+		let objectindex = FindLeverIndex(relativex, relativey);
+		if(objectindex != null){
+			PickedObject = LeverContents[objectindex];
+			LeverContents[objectindex] = 0;
+			CalcForce();
+			UpdateMachineCanvas();
+		}
+	if(PickedObject){UpdateForegroundCanvas();}
+	}
+}
+
+function MouseUp(x,y){
+	let relativex = x / Canvas.width;
+	let relativey = y / Canvas.height;
+	if(PickedObject == "F"){
+		if(relativex < 0.125){
+			FulcrumPosition = 1;
+		}else if(relativex > 0.875){
+			FulcrumPosition = 15;
+		}else{
+			relativex -= 0.075;
+			relativex = Math.floor(relativex / 0.05);
+			FulcrumPosition = relativex;
+		}
+		PickedObject = 0;
+		CalcAngleLimits();
+		CalcForce();
+		UpdateForegroundCanvas();
+		UpdateMachineCanvas();
+	}else{
+		let objectindex = FindLeverIndex(relativex, relativey);
+		if(objectindex != null && PickedObject != 0){
+			LeverContents[objectindex] = PickedObject;
+			CalcForce();
+			UpdateMachineCanvas();
+		}
+	}
+	PickedObject = 0;
+}
+
+function MouseMove(x,y){
+	MouseCoords = [x,y];
+}
+
+function CalcAngleLimits(){
+	console.log("calculating angle limits");
+	let leftarmlength = FulcrumPosition * 0.05;
+	let rightarmlength = 0.8 - leftarmlength;
+	LowestAngle = Math.asin(-0.1 / rightarmlength);
+	HighestAngle = Math.asin(-0.1 / (-1 * leftarmlength));
+	let rooflowestangle = Math.asin(0.5 / (-1 * leftarmlength));
+	let roofhighestangle = Math.asin(0.5 / rightarmlength);
+	if(rooflowestangle > LowestAngle || isNaN(LowestAngle)){
+		LowestAngle = rooflowestangle;
+	}
+	if(roofhighestangle < HighestAngle || isNaN(HighestAngle)){
+		HighestAngle = roofhighestangle;
+	}
+}
+
+function CalcForce(){
+	console.log("calculating force")
+	if(Settings["Freeze Lever"]){
+		ArrowContents[15] = 0;
+		ArrowContents[16] = 0;
+		let factor = -1 * FulcrumPosition;
+		let phase = 0;
+		for(let i = 1; i < 16; i++){
+			factor += 1;
+			if(Settings["Arm Weight"]){
+				if(phase == 0){ArrowContents[15] += Math.abs(factor);}
+				else{ArrowContents[16] += Math.abs(factor);}
+				if(factor == 0){phase += 1;}
+			}
+			ArrowContents[i-1] = Math.abs(factor) * Objects[LeverContents[i-1]][1];
+		}
+		console.log("frozen");
+	}else{
+		Force = 0;
+		ArrowContents[15] = 0;
+		ArrowContents[16] = 0;
+		let factor = -1 * FulcrumPosition;
+		let phase = 0;
+		for(let i = 1; i < 16; i++){
+			factor += 1;
+			if(Settings["Arm Weight"]){
+				Force += factor;
+				if(phase == 0){ArrowContents[15] += Math.abs(factor);}
+				else{ArrowContents[16] += Math.abs(factor);}
+				if(factor == 0){phase += 1;}
+			}
+			Force += factor * Objects[LeverContents[i-1]][1];
+			ArrowContents[i-1] = Math.abs(factor) * Objects[LeverContents[i-1]][1];
+		}
+		Force *= -1;
+		Grounded = false;
+	}
+}
+
+function UpdateHitboxes(){
+	console.log("update hitboxes");
+	M = Math.tan(LeverAngle);
+	let endnormalcos = Math.cos(LeverAngle + 1.570796327);//normal is perpendicular to tangent
+	let endnormalsin = Math.sin(LeverAngle + 1.570796327);
+	let x0 = 0.1 + (FulcrumPosition * 0.05);
+	B1 = (-0.5 + (endnormalsin * 0.025)) - (M*(x0 + (endnormalcos * 0.025)));
+	B2 = (-0.5 + (endnormalsin * 0.075)) - (M*(x0 + (endnormalcos * 0.075)));
+
+	NormalM = Math.tan(LeverAngle + 1.570796);
+	NormalBList = [];
+	let L = 0;
+	let x1 = 0;
+	let y1 = 0;
+	for(let i = 0; i < 16; i++){
+		L = 0.025 + (i - FulcrumPosition)*0.05;
+		x1 = x0 + Math.cos(LeverAngle)*L;
+		y1 = -0.5 + Math.sin(LeverAngle)*L;
+		NormalBList[i] = (-1 * NormalM * x1) + y1;
+	}
+}
+
+function MoveArm(){
+	if(Settings["Freeze Lever"] == false){LeverAngle = (LeverAngle + (Force * FLAConstant)) * 0.5;}
+	console.log(HighestAngle);
+	console.log(LowestAngle);
+	if(LeverAngle > HighestAngle){
+		LeverAngle = HighestAngle;
+		Grounded = true;
+	}
+	if(LeverAngle < LowestAngle){
+		LeverAngle = LowestAngle;
+		Grounded = true;
+	}
+	if(Math.abs(LeverAngle - (Force * FLAConstant)) < 0.001){
+		LeverAngle = Force * 0.05;
+		Grounded = true;
+	}
+	UpdateMachineCanvas();
+	UpdateHitboxes();
+}
+
+function Display(){
+	Context.drawImage(Background, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(ForegroundCanvas, 0, 0, Canvas.width, Canvas.height);
+	Context.drawImage(MachineCanvas, 0, 0, Canvas.width, Canvas.height);
+	if(PickedObject == "F"){
+		Context.drawImage(Fulcrum, MouseCoords[0] - Canvas.width*0.05, MouseCoords[1] - Canvas.height*0.05, Canvas.width * 0.1, Canvas.height * 0.1);
+	}else if(PickedObject != 0){
+		Context.drawImage(Objects[PickedObject][3], MouseCoords[0] - Canvas.width*0.025, MouseCoords[1] - Canvas.height*0.025, Canvas.width * 0.05, Canvas.height * 0.05);
+	}
+}
+
+function MainLoop(){
+	if(Grounded == false){MoveArm();}
+	Display();
+}
+
+var Canvas = document.getElementById("CenterCanvas");
+var Context = Canvas.getContext("2d");
+var CanvasBox = Canvas.getBoundingClientRect();
+Canvas.addEventListener("mousedown", event => {MouseDown(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mouseup", event => {MouseUp(event.offsetX, event.offsetY);});
+Canvas.addEventListener("mousemove", event => {MouseMove(event.offsetX, event.offsetY);});
+
+var FulcrumPosition = 8;//the far left side of the lever is 1
+var Force = 0;//negative is the right side going down
+var FLAConstant = 0.05;
+var M = 0;//ya know, like y=mx+b ?
+var B1 = -0.475;//top of lever, bottom of objects
+var B2 = -0.425;//top of objects
+var NormalM = 0;
+var NormalBList = [];
+var LeverAngle = 0;
+var LowestAngle = -1;
+var HighestAngle = 1;
+var LowestX = 0.1;
+var HighestX = 0.9;
+var Grounded = false;
+var LeverContents = [0,0,0,0,1,0,0,0,3,0,0,0,0,0,0];
+var ArrowContents = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];//[levercontents, left arm, right arm, left total, right total]
+
+var PickedObject = 0;//index in Objects, or "F" for fulcrum
+var MouseCoords = [0,0];
+
+var MachineCanvas = document.createElement("canvas");//natural size
+MachineCanvas.width = 1000;
+MachineCanvas.height = 1000;
+var MachineContext = MachineCanvas.getContext("2d");
+
+var ForegroundCanvas = document.createElement("canvas");//natural size
+ForegroundCanvas.width = 1000;
+ForegroundCanvas.height = 1000;
+var ForegroundContext = ForegroundCanvas.getContext("2d");
+var ObjectsView = 1;//starts at 1 because 0 is empty
+
+var Settings = {"Arm Weight":true, "Torque Arrows":false, "Freeze Lever":false};
+ForegroundContext.textAlign = "left";
+ForegroundContext.font = "30px Arial";
+var SettingBoxX = 0;
+var SettingsLength = 0;
+for(let name in Settings){
+	if(ForegroundContext.measureText(name).width > SettingBoxX){SettingBoxX = ForegroundContext.measureText(name).width;}
+	SettingsLength += 1;
+}
+SettingBoxX += 75;
+SettingBoxX = Math.round(SettingBoxX);
+
+setInterval(MainLoop, 50);
+
+var Objects = [["Empty",0,""],["Pineapple",1,"1"],["Steel Toed Boots",2,"2"],["Brick",3,"3"],["Dutch Oven",5,"5"],["Dog",10,"10"],["Microwave",15,"15"],["Minifridge",20,"20"],["Fly",-1,"-1"],["Balloon",-2,"-2"],["Ghost",-3,"-3"],["Eagle",-5,"-5"],["Helicopter",-10,"-10"],["Globe",907,"?"],["Eighth Note",-51,"?"],["Potted Plant",0.5,"?"]];
+//[name,weight,displayedweight(str),picture]
+//weight of globe is based on: density of earth: 5.51g/cm^3;  width of each item: 1m(so diameter of globe is 0.68m);  end result in kg
+for(let i = 1; i < Objects.length; i++){//load pictures
+	Objects[i][3] = new Image();
+	Objects[i][3].src = "../Images/" + Objects[i][0] + ".png";
+}
+
+var CheckBoxTrue = new Image();
+CheckBoxTrue.src = "../Images/CheckBox True.png";
+var CheckBoxFalse = new Image();
+CheckBoxFalse.src = "../Images/CheckBox False.png";
+var ArrowNone = new Image();
+ArrowNone.src = "../Images/Arrow None.png";
+var ArrowDown = new Image();
+ArrowDown.src = "../Images/Arrow Down.png";
+var ArrowUp = new Image();
+ArrowUp.src = "../Images/Arrow Up.png";
+var Background = new Image();
+Background.src = "Background.png";
+var Arm = new Image();
+Arm.onload = UpdateMachineCanvas;//This has to be at the end, or it won't be able to find the canvas & context & stuff
+Arm.src = "Arm.png";
+var Fulcrum = new Image();
+Fulcrum.onload = UpdateForegroundCanvas;
+Fulcrum.src = "Fulcrum.png";
+
+CalcAngleLimits();
+CalcForce();
+</script>
+</html>
